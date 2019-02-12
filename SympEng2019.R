@@ -251,4 +251,26 @@ library(kableExtra)
 kable(whole)
 
 
+library(mice)
+
+lusc$burden[is.na(lusc$burden)] = mice.impute.mean(y = lusc$burden,
+                       ry = !is.na(lusc$burden))
+
+sum(is.na(lusc$burden))
+library(caret)
+lusc$pd_d[is.na(lusc$pd_d)] <- "DiseaseFree"
+set.seed(1234)
+train.index <- createDataPartition(lusc$pd_d == "Recurred/Progressed" & lusc$os_d == "DECEASED", p = 3/4, list = FALSE)
+train <- lusc[ train.index,]
+test  <- lusc[-train.index,]
+
+# Suppose you have $d$ dimensional parameters, the optimal scale is approximate $2.4d^(−1/2)$ times the scale of the target distribution, which implies optimal acceptance rates of 0.44 for $d = 1$ and 0.23 for $d$ goes to \infinity.
+# You are shooting for an acceptance rate of 25-50% for the Metropolis algorithm.
+# reference: Automatic Step Size Selection in Random Walk Metropolis Algorithms, Todd L. Graves, 2011.
+
+dp <- DirichletProcessBeta(train$burden, 1, mhStep = c(0.01, 0.01), mhDraws = 250)
+# sAccept Ratio:  0.482 
+dp <- Fit(dp, 24000, updatePrior = TRUE)
+dp$numberClusters
+plot(dp)
 
